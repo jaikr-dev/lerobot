@@ -41,14 +41,14 @@ Measured without horns or screws.
 | ID 5 (Wrist Roll)| STS3215-C046 | 54.26     | 3.50      |
 | ID 6 (Gripper)   | STS3215-C046 | 54.11     | 3.50      |
 
-The goal is to have accurate component masses for feedforward gravity
+**The goal is to have accurate component masses for feedforward gravity
 compensation. If system identification doesn't work well enough, these measured
 values can be used directly to build a dynamics model of the arm. Each link's
 total mass comes mostly from the motor and cable, so capturing these during
 assembly -- before everything is buried inside the printed parts -- saves having
 to tear the arm down later. These same values are also needed if the arm ever
 gets modeled in simulation (URDF/MJCF), where realistic masses and inertias
-make the difference between a sim that transfers to real and one that doesn't.
+make the difference between a sim that transfers to real and one that doesn't.**
 
 ## SO-101 Follower Arm Motor Gear Ratios
 
