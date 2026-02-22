@@ -27,6 +27,29 @@ The higher-load joints (base, shoulder, elbow) use the higher gear ratios so the
 arm can support its own weight. The wrist and gripper use lower ratios so they
 stay easy to move by hand.
 
+### Leader Arm Component Weights
+
+Measured without horns or screws.
+
+| Component        | Motor Model  | Motor (g) | Cable (g) |
+|------------------|--------------|-----------|-----------|
+| Servo Bus        | --           | 7.29      | --        |
+| ID 1 (Base)      | STS3215-C044 | 54.22     | 3.55      |
+| ID 2 (Shoulder)  | STS3215-C001 | 54.32     | 3.49      |
+| ID 3 (Elbow)     | STS3215-C044 | 54.29     | 3.52      |
+| ID 4 (Wrist Flex)| STS3215-C046 | 53.91     | 3.44      |
+| ID 5 (Wrist Roll)| STS3215-C046 | 54.26     | 3.50      |
+| ID 6 (Gripper)   | STS3215-C046 | 54.11     | 3.50      |
+
+The goal is to have accurate component masses for feedforward gravity
+compensation. If system identification doesn't work well enough, these measured
+values can be used directly to build a dynamics model of the arm. Each link's
+total mass comes mostly from the motor and cable, so capturing these during
+assembly -- before everything is buried inside the printed parts -- saves having
+to tear the arm down later. These same values are also needed if the arm ever
+gets modeled in simulation (URDF/MJCF), where realistic masses and inertias
+make the difference between a sim that transfers to real and one that doesn't.
+
 ## SO-101 Follower Arm Motor Gear Ratios
 
 The follower arm uses the same gear ratio (1/345) for all six motors. Since this
