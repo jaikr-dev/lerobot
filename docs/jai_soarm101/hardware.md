@@ -69,6 +69,19 @@ In total you need 6x 1/345 gear ratio (C018).
 The 12V Pro version provides 30 kg-cm of stall torque compared to around
 16.5 kg-cm for the 7.4V standard motors.
 
+### Follower Arm Component Weights
+
+Measured without horns or screws.
+
+| Component        | Motor Model  | Motor (g) | Cable (g) |
+|------------------|--------------|-----------|-----------|
+| ID 1 (Base)      | STS3215-C018 | 55.67     | 3.50      |
+| ID 2 (Shoulder)  | STS3215-C018 | 55.72     | 3.27      |
+| ID 3 (Elbow)     | STS3215-C018 | 55.55     | 3.54      |
+| ID 4 (Wrist Flex)| STS3215-C018 | 55.58     | 3.52      |
+| ID 5 (Wrist Roll)| STS3215-C018 | 55.34     | 3.58      |
+| ID 6 (Gripper)   | STS3215-C018 | 55.45     | 3.52      |
+
 ## Power Supply
 
 - Leader arm -- always uses 7.4V motors, powered at 5V
