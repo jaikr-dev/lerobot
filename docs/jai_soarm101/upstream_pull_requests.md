@@ -35,13 +35,13 @@ position, and PWM only.
 
 ### Motor comparison for torque control feasibility
 
-| Motor | Torque Control | Stall Torque | Price |
-|-------|---------------|--------------|-------|
-| Feetech STS3215 (7.4V) | No | 16.5 kg-cm @ 6V | ~$10 |
-| Feetech STS3215 (12V) | No | 30 kg-cm @ 12V | ~$12 |
-| Dynamixel XL430-W250 | No | 15.3 kg-cm @ 12V | ~$50 |
-| Dynamixel XL330-M288 | Yes (current mode, current-based position mode) | 5.3 kg-cm @ 5V | ~$24 |
-| Dynamixel XM430-W350 | Yes (current-based position mode) | 41.8 kg-cm @ 12V | ~$50+ |
+| Motor | Torque Control | Stall Torque | Dimensions (mm) | Weight | Price |
+|-------|---------------|--------------|-----------------|--------|-------|
+| Feetech STS3215 (7.4V) | No | 16.5 kg-cm @ 6V | 24.7 x 45.2 x 35 | 55 g | ~$10 |
+| Feetech STS3215 (12V) | No | 30 kg-cm @ 12V | 24.7 x 45.2 x 35 | 55 g | ~$12 |
+| Dynamixel XL430-W250 | No | 15.3 kg-cm @ 12V | 28.5 x 46.5 x 34 | 65 g | ~$50 |
+| Dynamixel XL330-M288 | Yes (current mode, current-based position mode) | 5.3 kg-cm @ 5V | 20 x 34 x 26 | 18 g | ~$24 |
+| Dynamixel XM430-W350 | Yes (current-based position mode) | 41.8 kg-cm @ 12V | 28.5 x 46.5 x 34 | 82 g | ~$50+ |
 
 The XL330-M288 is price-comparable to the STS3215 and has the right control
 modes, but its torque is very low for a 6-DOF arm. The XM430-W350 has both the
