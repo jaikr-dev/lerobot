@@ -1,8 +1,75 @@
-# SOARM101 Hardware Reference
+# SOARM101 Journal
+
+20260221
+
+## Naming Convention
+
+All project-specific additions use the `jai_` prefix to distinguish them from
+upstream lerobot content. This applies to branches, docs directories, and any
+custom scripts or configs added as part of this project.
+
+## Hardware
+
+- **Motor Controller:** SEEED STUDIO 331-2508220013
+- **Interface:** USB CDC ACM (`/dev/ttyACM*`)
+
+## Udev Rule Script
+
+- Created `generate_motorbus_udev_rule.bash` for generating udev rules for
+  MotorBus devices
+- Removed FTDI-specific `ATTR{device/latency_timer}` -- not applicable to the
+  SEEED STUDIO CDC ACM devices used in this project
+- Set `MODE="0666"` for broad device access
+- Added `set -euo pipefail` for safer script execution
+
+### Generating a rule
+
+```bash
+sudo bash src/lerobot/scripts/generate_motorbus_udev_rule.bash -d /dev/ttyACM0 -n leader_arm
+```
+
+### What the script does
+
+1. Reads the device's vendor ID, product ID, and serial number via `udevadm`
+2. Writes a udev rule to `/etc/udev/rules.d/99-tty-<name>.rules`
+3. Reloads udev rules and triggers a re-scan
+
+### Removing a rule
+
+Delete the generated file and reload:
+
+```bash
+sudo rm /etc/udev/rules.d/99-tty-<name>.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
 
 20260222
 
-## SO-101 Leader Arm Motor Gear Ratios
+## Motor Setup
+
+The Motor Bus needs both a USB connection to your laptop and external power from
+the DC/DC adapter included in the kit. The USB connection alone is not enough --
+the motors will not respond to commands without the DC/DC adapter plugged in.
+This is easy to miss since the official docs don't mention it unless you watch
+the video tutorials.
+
+So before running the setup script, make sure:
+
+1. The Motor Bus is connected to your laptop via USB
+2. The DC/DC adapter is connected and powering the Motor Bus
+3. At least one motor is connected to the Motor Bus
+
+Then run:
+
+```bash
+# Example -- /dev/leader_arm is a symlink created by the udev rule,
+# the actual device port is /dev/ttyACM0
+uv run lerobot-setup-motors \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/leader_arm
+```
+
+## Leader Arm Motor Gear Ratios
 
 The HuggingFace docs mention that the leader arm needs specific gear ratios but
 don't say which motor serial/model numbers correspond to which gear ratio. This
@@ -50,7 +117,7 @@ to tear the arm down later. These same values are also needed if the arm ever
 gets modeled in simulation (URDF/MJCF), where realistic masses and inertias
 make the difference between a sim that transfers to real and one that doesn't.**
 
-## SO-101 Follower Arm Motor Gear Ratios
+## Follower Arm Motor Gear Ratios
 
 The follower arm uses the same gear ratio (1/345) for all six motors. Since this
 build uses the 12V version, that corresponds to the STS3215-C018.
@@ -88,3 +155,37 @@ Measured without horns or screws.
 - Follower arm -- uses 12V Pro motors, powered at 12V
 
 Make sure you use the correct power supply for each arm.
+
+20260301
+
+## Leader Arm Assembly
+
+### General
+
+- The assembly videos on the
+  [HuggingFace docs](https://huggingface.co/docs/lerobot/en/so101?assembly=Leader)
+  don't match the text instructions. This was confusing at first but the videos
+  are more reliable -- just watch those and ignore the text when they conflict.
+- Overall assembly was pretty easy and straightforward. No tolerance issues with
+  the 3D printed parts.
+
+### M2 x 6mm Self-Threading Screws
+
+These are used throughout the assembly. They're self-threading which makes
+things very easy, especially with 3D printed parts where holes aren't always
+perfectly aligned or have sagged slightly during printing.
+
+### M3 Screw Holes and Counterbores Are Slightly Small
+
+Had to use a lot of force in several places to get the M3 screw heads into the
+counterbores, and then more force to drive the screws through the 3D printed
+parts into the servo horn holes. Next time I print a set, I need to modify the
+CAD files on Onshape to increase the M3 screw holes and counterbores by
+0.05--0.1 mm.
+
+### Trigger Installation
+
+The trigger was the hardest part to install because it kept moving around. The
+approach that worked: use two M3 6mm screws to align the holes first, then
+slowly tighten both screws alternately until they lock into the servo horn.
+After that, add the remaining two screws.
