@@ -252,3 +252,5 @@ positions and identify which joint is off before retrying calibration.
 - https://github.com/vladfatu/telerobot
 - https://www.giacomoran.com/blog/act-smooth/
 - https://github.com/roboninecom/SO-ARM100-101-Parallel-Gripper
+- https://arturhabuda.com/2025/07/01/foundation-robotics-model-comparison/
+- https://arturhabuda.com/2026/03/20/attention-heatmaps-in-vla-pi0-and-foca/
