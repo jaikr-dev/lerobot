@@ -246,3 +246,9 @@ range when pressing Enter. The tolerance is tight -- a few degrees matters.
 
 Created `docs/jai_soarm101/scripts/check_motor_positions.py` to read raw motor
 positions and identify which joint is off before retrying calibration.
+
+## Links to Explore
+
+- https://github.com/vladfatu/telerobot
+- https://www.giacomoran.com/blog/act-smooth/
+- https://github.com/roboninecom/SO-ARM100-101-Parallel-Gripper
