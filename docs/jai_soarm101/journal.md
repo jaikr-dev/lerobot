@@ -189,3 +189,22 @@ The trigger was the hardest part to install because it kept moving around. The
 approach that worked: use two M3 6mm screws to align the holes first, then
 slowly tighten both screws alternately until they lock into the servo horn.
 After that, add the remaining two screws.
+
+20260329
+
+## Upstream PRs
+
+Submitted two PRs to huggingface/lerobot:
+
+- **Fix SO-101 assembly instruction order to match videos** -- reordered motor
+  horn installation to come before placing motors in the housing, added note
+  that bottom horns don't require screws.
+- **Replace chmod 666 with persistent udev rules** -- added
+  `generate_motorbus_udev_rule.bash` script and updated SO-101, SO-100, Koch,
+  and LeKiWi docs to use it instead of temporary chmod.
+
+## Project Docs Consolidation
+
+Merged setup.md, decisions.md, assembly.md, and hardware.md into this single
+journal file. Easier to append new entries without deciding which file something
+belongs in.
