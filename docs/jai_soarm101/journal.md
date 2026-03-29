@@ -208,3 +208,41 @@ Submitted two PRs to huggingface/lerobot:
 Merged setup.md, decisions.md, assembly.md, and hardware.md into this single
 journal file. Easier to append new entries without deciding which file something
 belongs in.
+
+## Python Version
+
+The lerobot codebase uses `type` statement syntax (Python 3.12+). The previous
+venv was Python 3.10 which caused a `SyntaxError` on import. Recreated with
+Python 3.12:
+
+```bash
+uv venv --python 3.12
+uv pip install -e ".[all]"
+```
+
+`[all]` fails due to `egl-probe` (a transitive dependency via hf-libero ->
+robomimic) being incompatible with newer CMake. Workaround:
+
+```bash
+CMAKE_POLICY_VERSION_MINIMUM=3.5 uv pip install -e ".[all]"
+```
+
+## Leader Arm Input Voltage Error
+
+During `lerobot-setup-motors`, motor 2 (shoulder_lift) threw
+`[RxPacketError] Input voltage error!`. This is overvoltage protection -- the
+leader arm uses 7.4V motors and must be powered with the 5V supply, not the 12V
+one. The 12V supply is for the follower arm only. Switching to 5V fixed it.
+The motors were not damaged -- the STS3215 has built-in overvoltage protection
+that refuses to operate rather than frying.
+
+See huggingface/lerobot#2387 for other reports of the same issue.
+
+## Calibration Homing Offset Out of Range
+
+During `lerobot-calibrate`, got `ValueError: Magnitude 2055 exceeds 2047`.
+This means one of the joints wasn't close enough to the center of its physical
+range when pressing Enter. The tolerance is tight -- a few degrees matters.
+
+Created `docs/jai_soarm101/scripts/check_motor_positions.py` to read raw motor
+positions and identify which joint is off before retrying calibration.
