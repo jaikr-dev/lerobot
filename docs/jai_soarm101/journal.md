@@ -265,3 +265,122 @@ positions and identify which joint is off before retrying calibration.
   - https://generalistai.com/blog/jan-29-2026-physical-commonsense
   - https://www.youtube.com/watch?v=SY2xyrmV44Y
   - https://www.youtube.com/watch?v=WgIdj9c4pA8
+  - https://www.youtube.com/watch?v=721BZL9jPhU
+
+## Learnings from lerobot_teleoperate.py
+
+### How the teleop loop works
+
+The teleoperation script has two main parts:
+
+1. **TeleoperateConfig** -- a dataclass that holds all settings (robot, teleoperator,
+   fps, display options). Each field becomes a CLI flag automatically.
+2. **teleop_loop()** -- the actual control loop that runs every frame.
+
+The loop does this each iteration:
+- Read the robot's current state (motor positions + camera images if any)
+- Read the leader arm's position (the action)
+- Process the action through pipelines (currently pass-through, but extensible)
+- Send the action to the follower robot
+- Optionally display data in the terminal and Rerun
+
+### Action pipeline
+
+The full path for an action is:
+teleoperator -> raw_action -> teleop_action_processor -> robot_action_processor -> robot
+
+The processors currently do nothing (identity/pass-through). They exist as hooks for
+future features like action scaling, smoothing, or safety limits.
+
+### Cameras are optional
+
+If you don't pass `--robot.cameras`, it defaults to an empty dict. Teleoperation
+works fine without cameras -- you just don't get visual feedback. Cameras are only
+needed if you want to see what the robot sees or record data.
+
+### display_data flag
+
+Setting `--display_data=true` does two things:
+- Prints a live-updating motor values table in the terminal (uses cursor tricks
+  to overwrite the same lines each frame instead of scrolling)
+- Logs camera images and actions to Rerun for visualization
+
+### Remote visualization with Rerun
+
+You can stream Rerun data to a remote machine by setting `--display_ip` and
+`--display_port`. Useful for headless setups (e.g. Beelink with no monitor).
+Both machines must be on the same network. Image compression auto-enables when
+streaming remotely to save bandwidth. On the viewing machine, run
+`rerun --serve --port 9876` and point the flags to that machine's local IP.
+
+### Force feedback
+
+The teleop loop has a special case for the Unitree G1 that sends force feedback
+to the teleoperator. Neither the SO-ARM nor OMX arm support this -- both have
+`send_feedback()` as a TODO.
+
+The SO-ARM's STS3215 servos lack precise torque control. The OMX arm's Dynamixel
+servos (XL430, XL330) are more capable -- they support current control mode where
+the motor applies a target force without fighting position changes. This could
+enable force feedback where you feel resistance when the follower hits something
+but can still move the leader freely.
+
+### Python patterns worth noting
+
+- **Dataclasses for config** -- group related settings into a structured object
+  instead of passing many separate arguments.
+
+- **@parser.wrap() decorator** -- walks the dataclass fields and their types
+  to auto-generate CLI flags. Nested dataclasses become dot-separated flags.
+  No manual argparse code needed.
+
+  Example: given these dataclasses:
+  ```python
+  @dataclass
+  class CameraConfig:
+      type: str = "opencv"
+      width: int = 640
+
+  @dataclass
+  class RobotConfig:
+      port: str = "/dev/ttyACM0"
+      camera: CameraConfig
+
+  @dataclass
+  class MainConfig:
+      robot: RobotConfig
+  ```
+  The decorator sees `MainConfig` -> `robot` (RobotConfig) -> `camera`
+  (CameraConfig) -> `width` (int), and auto-generates these CLI flags:
+  ```
+  --robot.port
+  --robot.camera.type
+  --robot.camera.width
+  ```
+  When you run `--robot.camera.width=1920`, the decorator builds:
+  ```python
+  cfg = MainConfig(
+      robot=RobotConfig(
+          port="/dev/ttyACM0",
+          camera=CameraConfig(type="opencv", width=1920)
+      )
+  )
+  ```
+  The dots in the CLI map directly to the nesting in the dataclass.
+
+- **Unused imports for registration** -- imports like `OpenCVCameraConfig` marked
+  `# noqa: F401` are not used directly in the file. They're imported so the class
+  gets registered in a lookup table, allowing the CLI parser to resolve
+  `type: opencv` to the right class.
+
+- **try/finally for cleanup** -- ensures `disconnect()` always runs, even if the
+  loop crashes or you press Ctrl+C.
+
+- **_ for discarded return values** -- `_ = robot.send_action(...)` means the
+  return value is intentionally ignored.
+
+- **Ternary expressions** -- `True if condition else fallback` is Python's inline
+  if/else for simple conditional assignments.
+
+- **Dot notation** -- accessing attributes (`self.cameras`) and methods
+  (`robot.get_observation()`) on objects.
