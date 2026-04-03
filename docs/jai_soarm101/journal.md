@@ -259,5 +259,9 @@ positions and identify which joint is off before retrying calibration.
 
 ## Links to Explore
 
-- Design custom grippers for the SO-101 arm, similar to:
-  https://generalistai.com/blog/apr-02-2026-GEN-1
+- GEN-1 gripper design by Generalist AI -- good for dexterous tasks, need to
+  design something similar for the SO-101:
+  - https://generalistai.com/blog/apr-02-2026-GEN-1
+  - https://generalistai.com/blog/jan-29-2026-physical-commonsense
+  - https://www.youtube.com/watch?v=SY2xyrmV44Y
+  - https://www.youtube.com/watch?v=WgIdj9c4pA8
