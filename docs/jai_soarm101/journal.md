@@ -384,3 +384,39 @@ but can still move the leader freely.
 
 - **Dot notation** -- accessing attributes (`self.cameras`) and methods
   (`robot.get_observation()`) on objects.
+
+20260403
+
+## Learnings from so_leader.py
+
+### High-level Overview
+
+Nobody holds the whole thing in their head at once, even experienced developers don't. They work in layers.
+People think about them as separate layers that talk to each other through defined interfaces.
+
+SOLeader is a remote control. That's it. It reads where you move the arm and reports those positions. The
+teleop loop asks it "where are your joints right now?" and it answers:
+
+__The layers from top to Bottom__
+
+Hardware (STS3215 servos on a serial bus)
+    |
+FeetechMotorsBus (talks to the servos over serial)
+    |
+SOLeader (wraps the bus, adds calibration and structure)
+    |
+teleop_loop (asks SOLeader for positions each frame)
+
+__How the file is organized__
+
+1. Imports - bring in the building blocks (motor bus, motor definitions, decorators)
+2. Class Definition - `SOLeader` inherits from `Teleoperator`, meaning it promises to provide certain methods (`connect`, `disconnect`, `get_action`).
+3. `__init__` = sets up the motor bus with 6 named motors
+4. connect/disconnect - open and close serial connection with calibration in between
+5. calibrate - is a one time setup to learn each joint's range
+6. configure - sets motor modes
+8. get_action - this is the core method that is called everyframe and reads all motor positions
+
+__How developers architect this__
+
+They don't visualize everything at once because they think in terms of contracts. The `Teleoperator` base class says "any teleoperator must have `connect()`, `disconnect()`, `get_action()`, and `send_feedback()`.

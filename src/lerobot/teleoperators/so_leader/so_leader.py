@@ -100,11 +100,17 @@ class SOLeader(Teleoperator):
         homing_offsets = self.bus.set_half_turn_homings()
 
         full_turn_motor = "wrist_roll"
-        unknown_range_motors = [motor for motor in self.bus.motors if motor != full_turn_motor]
+
+        unknown_range_motors = []
+        for motor in self.bus.motors:
+            if motor != full_turn_motor:
+                unknown_range_motors.append(motor)
+
         print(
             f"Move all joints except '{full_turn_motor}' sequentially through their "
             "entire ranges of motion.\nRecording positions. Press ENTER to stop..."
         )
+        # Returns a tuple of two dicts: (mins, maxes) for each motor's observed range
         range_mins, range_maxes = self.bus.record_ranges_of_motion(unknown_range_motors)
         range_mins[full_turn_motor] = 0
         range_maxes[full_turn_motor] = 4095
@@ -126,6 +132,7 @@ class SOLeader(Teleoperator):
     def configure(self) -> None:
         self.bus.disable_torque()
         self.bus.configure_motors()
+        # Set position mode here because calibrate() may have been skipped
         for motor in self.bus.motors:
             self.bus.write("Operating_Mode", motor, OperatingMode.POSITION.value)
 
@@ -137,7 +144,14 @@ class SOLeader(Teleoperator):
 
     @check_if_not_connected
     def get_action(self) -> dict[str, float]:
+        """Read the current position of every motor on the leader arm.
+
+        This is the "read the leader arm" step in the teleop pipeline:
+        leader.get_action() -> teleop_action_processor -> robot_action_processor -> robot
+        """
         start = time.perf_counter()
+        # Present position is a register name on the STS3215 servos
+        # It's where the servo stores its current angle as a raw integer 
         action = self.bus.sync_read("Present_Position")
         action = {f"{motor}.pos": val for motor, val in action.items()}
         dt_ms = (time.perf_counter() - start) * 1e3
