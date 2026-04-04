@@ -59,6 +59,7 @@ class SOLeader(Teleoperator):
 
     @property
     def feedback_features(self) -> dict[str, type]:
+        # Returns an empty dictionary -- meaning this teleoperator has no feedback features
         return {}
 
     @property
@@ -69,9 +70,7 @@ class SOLeader(Teleoperator):
     def connect(self, calibrate: bool = True) -> None:
         self.bus.connect()
         if not self.is_calibrated and calibrate:
-            logger.info(
-                "Mismatch between calibration values in the motor and the calibration file or no calibration file found"
-            )
+            logger.info("Robot is not calibrated, running calibration...")
             self.calibrate()
 
         self.configure()
