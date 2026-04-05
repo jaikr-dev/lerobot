@@ -514,10 +514,9 @@ never exposed it as a control mode.
 
 ### Teleoperation
 
-For basic SO-101 teleoperation, kinematics is not used. The leader reads joint positions, the follower copies them directly. No FK or IK involved. 
+For basic SO-101 teleoperation, kinematics is not used. The leader reads joint positions, the follower copies them directly. No FK or IK involved.
 
-The `robot_kinematic_processor.py` is for a different use-case. It is for end-effector (cartesion control). Instead of commanding
-individual joint positions, you command where you want the gripper
+The `robot_kinematic_processor.py` is for a different use-case. It is for end-effector (cartesion control). Instead of commanding individual joint positions, you command where you want the gripper
 top to be in 3D space (x, y, z, rotation), and the system uses:
 
 - Forward Kinematics: converts current joint angles to the gripper's current 3D position
@@ -538,3 +537,43 @@ Gravity compensation and Custom Grippers:
 - Gravity compensation -- to compute the torque gravity exerts on each joint, you need to know where each link's center of mass is in 3D space relative to each joint. That's forward kinematics. The torque on the shoulder joint depends on where the elbow, wrist, and gripper are in space and how much they weigh. Without FK, you can't compute the gravity torque vector.
 
 - Custom grippers -- changing the gripper changes the last link of the kinematic chain (different length, weight, center of mass). If you ever use Cartesian control or gravity compensation, the kinematic model needs to reflect the actual gripper geometry. For pure joint-space ACT, a different gripper doesn't require kinematics -- but it does change the calibration and range of motion.
+
+### Intel RealSense D405 General Information
+
+The D405 uses a passive stereo configuration with a pair of global shutter images separated by an 18mm baseline. It has no dedicated RGB lenses. Rather, the RGB is obtained from the depth sensor itself and then
+the ISP (Image Signal Processor) enhances the RGB.
+
+The lenses are fixed focus with no auto-focus capability for varying object distances within the working range.
+
+The depth (and color, since on the D405 color is derived from the depth sensor) __ground truth origin__ is at
+the ___left infrared imager__ which is on my right when I look at the front face of the camera.
+
+### Intel RealSense D405 Groundtruth Origin
+
+[Reference Link](https://forum.digikey.com/t/the-intel-realsense-depth-camera-d405/50822) for Onshape-to-Robot: The origin (0,0,0) is defined as follows:
+- The centreline of the 1/4-20 tripod mounting hole runs vertically through the camera body. This is the Y axis.
+- The line perpendicular to it, passing through the same point, is the X axis.
+- Where they intersect is the XY origin.
+
+From that origin, the left imager (the depth/colour origin) is located at:
+
+- X = +9 mm — 9 mm to the right as you face the front of the camera
+- X = +9 mm — 9 mm to the right as you face the front of the camera
+- Z = -3.7 mm — the front glass face is Z = 0, and the optical origin sits 3.7 mm behind it, into the body
+
+Place your mate connector 9 mm to the right of the tripod mount centreline, vertically centred, with Z pointing outward and offset 3.7mm into the body.
+
+### Onshape-to-Robot upgrades for the SO-ARM101
+
+The original assembly and Onshape file had hundreds of parts with random names that made no sense (sorry). Now, the main Onshape-to-robot subassembly has one composite part per link. This collapses all the visual/structure geometry into one rigid body per link, which maps cleanly to URDF links. 
+
+The good about this approach:
+
+- One composite part per link means onshape-to-robot has no ambiguity about what constitutes each rigid body
+- Clean assembly tree makes debugging much easier
+- The 7 subassemblies are connected to each other with revolute mates at the joint locations
+- Things that I had to ensure:
+  - `onshape-to-robot` uses the mate connector axes to define the joint rotation axes in the URDF. So, if I just snap geometry together arbitrarily, the joint axes in the output will be wrong and unpredictable.
+  - For each revolute mate I needed to ensure that the mate connector is positioned at the joints centre of rotations and the z axis aligned with the rotation axis. `onshape-to-robot` treats z as the joint axis by convention.
+  - These mate connectors are in the sub-assemblies rather than the main assembly. This ensures that the mate connector lives relative to the part geometry. If I ever move or modify the sub-assembly, the connector moves with it.
+  
