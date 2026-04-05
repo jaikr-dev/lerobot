@@ -420,3 +420,121 @@ __How the file is organized__
 __How developers architect this__
 
 They don't visualize everything at once because they think in terms of contracts. The `Teleoperator` base class says "any teleoperator must have `connect()`, `disconnect()`, `get_action()`, and `send_feedback()`.
+
+20260503
+
+## Learnings from so_follower.py
+
+The whole point of decorators is that they wrap usable behaviour around methods so you don't need to repeat
+yourself
+
+### self
+
+`self` refers to the specific instance of the class. If you do `robot = SOFollower(config)`,
+then inside any method of that class, `self` is `robot`. It's how methods access the
+object's attributes like `self.bus`, `self.cameras`, `self.config`. Every instance method
+takes `self` as its first argument -- Python passes it automatically when you call the method.
+
+### with statement (context manager)
+
+`with` runs setup code before the block and cleanup code after, guaranteed -- even if an
+error happens inside. For example, `with self.bus.torque_disabled()` disables torque on
+enter, runs your code, then re-enables torque on exit. You can't accidentally forget the
+cleanup step. It's a cleaner version of try/finally.
+
+### PID tuning on the follower
+
+PID is a control loop that makes the motor reach and hold a target position.
+
+- **P (Proportional)** -- how hard the motor pushes to reach the target. Higher = faster
+  but can overshoot and shake. Lower = smoother but slower.
+- **I (Integral)** -- corrects for being slightly off target over time. Set to 0 here
+  because the target changes every frame anyway.
+- **D (Derivative)** -- brakes as the motor approaches the target. Reduces overshoot.
+
+The follower uses P=16 (default is 32), I=0, D=32. The lower P avoids shakiness. These
+values are the same for every motor, but ideally each joint would be tuned individually
+since different joints carry different loads (shoulder carries more weight than the wrist).
+Per-motor tuning would give better performance but adds complexity.
+
+### Python patterns
+
+- **Dictionary comprehension** -- `{f"{motor}.pos": val for motor, val in action.items()}`
+  builds a new dict from an existing one. Same idea as list comprehension but produces a
+  dict. Pattern: `{key: value for item in iterable}`.
+- **Dictionary unpacking** -- `{**dict_a, **dict_b}` merges two dicts into one. If both
+  have the same key, the second overwrites the first.
+- **`@property`** -- makes a method callable like an attribute (no parentheses). Can only
+  be used when the method takes no arguments besides self.
+- **`@cached_property`** -- same as `@property` but runs the method once and caches the
+  result. Every subsequent access returns the cached result without re-running the method.
+- **`all()`** -- built-in that returns True only if every item is True. `any()` returns
+  True if at least one is True.
+- **`_` for discarded values** -- `_ = func()` means the return value is intentionally
+  ignored.
+- **Aliases** -- `SO100Leader = SOLeader` creates a second name pointing to the same class.
+
+### How observation and action flow through the system
+
+- **Observation** = what the robot senses (motor positions + camera images)
+- **Action** = what the robot can do (motor target positions only, no cameras)
+- Keys use `.pos` suffix (e.g. `"shoulder_pan.pos"`) in the pipeline, which gets
+  stripped before writing to the motor bus and re-added when returning.
+
+### Gripper protection
+
+The gripper gets extra safety limits (50% max torque, 50% max current, 25% overload
+torque) because it's the most likely motor to stall. These can be tuned up if more
+grip force is needed but risk overheating or stripping the plastic gears.
+
+### max_relative_target
+
+A safety feature that clips how far a motor can move in one step. Disabled by default
+(`None`). Enable with `--robot.max_relative_target=5.0`. Runs during both teleoperation
+and policy inference. During teleoperation it rarely matters (smooth movements). During
+policy deployment, clipping could break the policy's assumptions -- so either disable it
+or set it high enough that it never triggers.
+
+### How developers think about code architecture
+
+Nobody holds an entire codebase in their head. They think in layers and contracts.
+A base class (like `Robot` or `Teleoperator`) defines a contract -- what methods must
+exist. Subclasses (like `SOFollower`, `SOLeader`) fulfill that contract for specific
+hardware. The teleop loop doesn't care how -- it just calls the interface methods.
+Focus on one layer at a time, not everything at once.
+
+### STS3215 custom firmware
+
+An open-source clean-room reimplementation of the STS3215 firmware exists
+(github.com/0o8o0-blip/sts3215-firmware). It adds a current/torque control mode
+(mode 4) that the factory firmware doesn't have. This could enable force feedback on the
+SO-ARM101 without swapping to Dynamixel servos -- same hardware, different firmware.
+The hardware already has a current sense resistor on the PCB; the factory firmware just
+never exposed it as a control mode.
+
+### Teleoperation
+
+For basic SO-101 teleoperation, kinematics is not used. The leader reads joint positions, the follower copies them directly. No FK or IK involved. 
+
+The `robot_kinematic_processor.py` is for a different use-case. It is for end-effector (cartesion control). Instead of commanding
+individual joint positions, you command where you want the gripper
+top to be in 3D space (x, y, z, rotation), and the system uses:
+
+- Forward Kinematics: converts current joint angles to the gripper's current 3D position
+
+- Inverse Kinematics: converts a desired 3D position back to the joint angles the motors can execute
+
+This is used when:
+- A gamepad/joystick controls the gripper in Cartesion space rather
+than commanding individual joint positions.
+
+- A policy outputs end-effector targets instead of joint targets
+
+- You want workspace bounds and safety limits in Cartesian space (the EEBoundsAndSafety class
+
+ACT operates entirely in joint-space - it does not need FK/IK. The policy outputs the same kind of joint angles that my teleoperation records. No cartesian conversion needed. However, kinemaitcs mattesr for
+Gravity compensation and Custom Grippers:
+
+- Gravity compensation -- to compute the torque gravity exerts on each joint, you need to know where each link's center of mass is in 3D space relative to each joint. That's forward kinematics. The torque on the shoulder joint depends on where the elbow, wrist, and gripper are in space and how much they weigh. Without FK, you can't compute the gravity torque vector.
+
+- Custom grippers -- changing the gripper changes the last link of the kinematic chain (different length, weight, center of mass). If you ever use Cartesian control or gravity compensation, the kinematic model needs to reflect the actual gripper geometry. For pure joint-space ACT, a different gripper doesn't require kinematics -- but it does change the calibration and range of motion.

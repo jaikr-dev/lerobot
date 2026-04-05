@@ -38,6 +38,10 @@ class SOFollower(Robot):
     """
     Generic SO follower base implementing common functionality for SO-100/101/10X.
     Designed to be subclassed with a per-hardware-model `config_class` and `name`.
+    The SOFollower inherits behaviour from Robot and takes an SOFollowerConfig as input
+    to know how to configure itself. The config tells it "use this port, these motors,
+    these cameras" and the Robot contract tells it "you must provide connect, disconnect,
+    get_observation, send_action."
     """
 
     config_class = SOFollowerRobotConfig
@@ -67,13 +71,20 @@ class SOFollower(Robot):
         return {f"{motor}.pos": float for motor in self.bus.motors}
 
     @property
+    # The value is a tuple of three things (height, width, 3). If I have a camera called "front"
+    # with 1080p resolution: {"front": (1080, 1920, 3)}. The 3 is hard-coded because images are always
+    # in RGB. Here H is the number or rows of pixels, Width is the number of columns of pixels, and 3 is
+    # the depth - one layer each for RED, GREEN, BLUE.
     def _cameras_ft(self) -> dict[str, tuple]:
         return {
             cam: (self.config.cameras[cam].height, self.config.cameras[cam].width, 3) for cam in self.cameras
         }
 
+    # Runs the method once, stores the result, and returns the store result on every subsequent access.
+    # It's useful here because observation_features won't change after setup - the motors and cameras will stay the same.
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
+        # Merge motor features and camera features into one dictionary using ** unpacking
         return {**self._motors_ft, **self._cameras_ft}
 
     @cached_property
@@ -82,6 +93,9 @@ class SOFollower(Robot):
 
     @property
     def is_connected(self) -> bool:
+        # all() is a native Python function that returns true only if every function is true
+        # There is also any() which returns True if at least one item is True
+        # This returns true if the motor bus is connected AND every camera is connected
         return self.bus.is_connected and all(cam.is_connected for cam in self.cameras.values())
 
     @check_if_already_connected
@@ -93,11 +107,11 @@ class SOFollower(Robot):
 
         self.bus.connect()
         if not self.is_calibrated and calibrate:
-            logger.info(
-                "Mismatch between calibration values in the motor and the calibration file or no calibration file found"
-            )
+            logger.info("Robot is not calibrated, running calibration...")
             self.calibrate()
 
+        # The follower is the one that connects cameras because it needs to observe the environment
+        # for recording datam visualisation, or training
         for cam in self.cameras.values():
             cam.connect()
 
@@ -163,6 +177,8 @@ class SOFollower(Robot):
                 self.bus.write("I_Coefficient", motor, 0)
                 self.bus.write("D_Coefficient", motor, 32)
 
+                # Gripper gets extra protection because it's most likely to stall
+                # (clamping down on something). Tune these up if you need more grip force.
                 if motor == "gripper":
                     self.bus.write("Max_Torque_Limit", motor, 500)  # 50% of max torque to avoid burnout
                     self.bus.write("Protection_Current", motor, 250)  # 50% of max current to avoid burnout
@@ -176,7 +192,8 @@ class SOFollower(Robot):
 
     @check_if_not_connected
     def get_observation(self) -> RobotObservation:
-        # Read arm position
+        # Read all motors positions in one batch and rename keys to motor.pos
+        # Capture an image from each camera and add it to the same dictionary
         start = time.perf_counter()
         obs_dict = self.bus.sync_read("Present_Position")
         obs_dict = {f"{motor}.pos": val for motor, val in obs_dict.items()}
@@ -193,7 +210,12 @@ class SOFollower(Robot):
         return obs_dict
 
     @check_if_not_connected
+    # The method runs both during teleoperation and policy inference. However, it max_relative_target
+    # defaults to None.  You have to explicitly set it via --robot.max_relative_target=5.0 to enable it.
     def send_action(self, action: RobotAction) -> RobotAction:
+        # For 6 motors the joint configuration is 6 position values - one per joint
+        # max_relative_target is a safety limit for how far a motor can move in a single step. 
+        # If it is 50, the action gets clipped from 200 to 60 (current position 10 + max 50). The motor moves less than I asked.
         """Command arm to move to a target joint configuration.
 
         The relative action magnitude may be clipped depending on the configuration parameter
@@ -206,18 +228,22 @@ class SOFollower(Robot):
         Returns:
             RobotAction: the action sent to the motors, potentially clipped.
         """
-
+        # It strips the .pos suffix from the keys and only keeps entries that end with .pos
         goal_pos = {key.removesuffix(".pos"): val for key, val in action.items() if key.endswith(".pos")}
 
         # Cap goal position when too far away from present position.
         # /!\ Slower fps expected due to reading from the follower.
         if self.config.max_relative_target is not None:
             present_pos = self.bus.sync_read("Present_Position")
+            # Creates a dictionary where each key maps to a tuple of (goal_position, current_position). 
+            # E.g. {"shoulder_pan": (200, 10), "gripper": (80, 75)}
             goal_present_pos = {key: (g_pos, present_pos[key]) for key, g_pos in goal_pos.items()}
+            # Checks if the hap between goal and current is too large. If so, it clips the goal down.
             goal_pos = ensure_safe_goal_position(goal_present_pos, self.config.max_relative_target)
 
         # Send goal position to the arm
         self.bus.sync_write("Goal_Position", goal_pos)
+        # Return what was actually sent to the motors and not what was originally requested
         return {f"{motor}.pos": val for motor, val in goal_pos.items()}
 
     @check_if_not_connected
