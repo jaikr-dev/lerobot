@@ -565,7 +565,7 @@ Place your mate connector 9 mm to the right of the tripod mount centreline, vert
 
 ### Onshape-to-Robot upgrades for the SO-ARM101
 
-The original assembly and Onshape file had hundreds of parts with random names that made no sense (sorry). Now, the main Onshape-to-robot subassembly has one composite part per link. This collapses all the visual/structure geometry into one rigid body per link, which maps cleanly to URDF links. 
+The original assembly and Onshape file had hundreds of parts with random names that made no sense (sorry). Now, the main Onshape-to-robot subassembly has one composite part per link. This collapses all the visual/structure geometry into one rigid body per link, which maps cleanly to URDF links.
 
 The good about this approach:
 
@@ -577,3 +577,52 @@ The good about this approach:
   - For each revolute mate I needed to ensure that the mate connector is positioned at the joints centre of rotations and the z axis aligned with the rotation axis. `onshape-to-robot` treats z as the joint axis by convention.
   - These mate connectors are in the sub-assemblies rather than the main assembly. This ensures that the mate connector lives relative to the part geometry. If I ever move or modify the sub-assembly, the connector moves with it.
   
+### `fix_` vs `dof_`
+
+They achieve the same result (rigid connection), but the intent is different:
+
+- `fix_` -- explicitly tells onshape-to-robot to merge two parts into one link. No joint is created at all in the output. The parts become one rigid body.
+- `dof_` with fastened -- creates an actual fixed joint in the URDF/MJCF. The two parts remain separate links connected by a joint wiht zero degrees of freedom.
+
+So prefixing a mate with `fix_` makes it a fixed joint, which most URDF/MJCF parsers will collapse into a single rigid body. So, instead of using composite parts, I could have all my individual parts connected by `fix_`
+and they'd effectively behave as one link. However, I argue that my composite parts approach is cleaner because:
+
+1. The collapsing happens at the Onshape level, not dependent on the parser
+2. The assembly tree is simpler to read and debug
+3. Mass/Inertia (if included) will be computed on one unified body rather than summed across fixed joints
+
+### Understanding config.json
+
+- `ignore_limits`: __false__. When false, onshape-to-robot reads the joint limits from your Onshape mate connectors (the min/max rotation I set on each DOF) and includes them in the exported MuJoCo XML as `range`
+attributes on joints. When true, it ignores these limits and exports joints with no range constraints -- they can rotate freely.
+
+- `draw_frames`: __true__. When true, onshape-to-robot exports `<site>` elements in the MuJoCo XML for each `frame_` mate connector in the Onshape model. These are visual markers visible in the MuJoCo viewer, useful for debugging positions and orientations. When false, frame mate connectors are ignored during export.
+
+- `no_dynamics`: __false__. When false, onshape-to-robot includes mass, inertia, and physics properties in the export. When true, it skips all dynamics -- no mass, no inertia -- producing a model only suitable for visualization, not physics simulation. Keep this false for any model that needs to simulate gravity, contacts, or motor forces.
+
+### onshape-to-robot
+
+- The ctrlrange is relative to the joint's zero position in the Onshape assembly. Negative values rotate one direction from zero, positive the other. Hence, the 0 is wherever the joint sits in my Onshape assembly pose.
+- `forcerange` and `actuatorfrcrange` both limit force, but at different points:
+  - `forcerange` is set on the **actuator** (the motor). It caps what that single
+    motor can output. Think of it as the motor's own strength limit.
+  - `actuatorfrcrange` is set on the **joint**. It caps the total force the joint
+    can receive from all motors driving it. Think of it as the joint's structural
+    limit -- how much force the physical joint can handle before something breaks.
+  - In the SO-101, each joint has one motor, so both limits apply to the same
+    force. The joint limit (2.94 Nm) is tighter than the motor limit (3.35 Nm),
+    meaning the joint is the bottleneck.
+  - If a joint had two motors pushing it (not the case here), `actuatorfrcrange`
+    would cap their combined force, while each motor's `forcerange` would cap
+    them individually.
+  - `forcerange` gives the PD controller a bit of room to compute without hitting a hard
+  wall immediately. `actuatorfrcrange` is the hard physical limit - the joint never sees more
+  than the real motor's stall torque regardless.
+- kp is the proportional gain. Hence, it multiplies the position error `kp * (q_desired - q_actual)`.
+It determines stiffness - how hard the actuator pushes to close a position error. Higher kp leads to a stiffer, snappier response, but it can overshoor or oscillate.
+
+- kv is the derivative gain. Multiplies the velocity error. A higher Kv dampens the response (resists motion, smooths out oscillations).
+
+```bash
+F = kp * (q_desired - q_actual) + kv * (dq_desired - dq_actual)
+```
