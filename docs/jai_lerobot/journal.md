@@ -626,3 +626,19 @@ It determines stiffness - how hard the actuator pushes to close a position error
 ```bash
 F = kp * (q_desired - q_actual) + kv * (dq_desired - dq_actual)
 ```
+
+- `forcerange` and `actuatorfrcrange` have different formats in config.json.
+  `onshape-to-robot` expects `forcerange` as a **single number** (the magnitude)
+  because the exporter auto-generates the symmetric range: `forcerange="-{value} {value}"`.
+  But `actuatorfrcrange` expects a **two-element array** `[min, max]` because it
+  writes them directly as `actuatorfrcrange="{min} {max}"`. Passing an array to
+  `forcerange` produces garbled output like `forcerange="-[-3.35, 3.35] [-3.35, 3.35]"`.
+  Correct usage: `"forcerange": 3.35` and `"actuatorfrcrange": [-2.94, 2.94]`.
+
+- `onshape-to-robot` is installed in the base conda environment, not the lerobot
+  venv. Deactivate the lerobot venv first (`deactivate`) before running it.
+
+- `onshape-to-robot` exports one mesh per composite part. Everything in a
+  composite gets a single material/color. So the motor and the 3D printed housing
+  end up the same color. To have different colors per sub-part within the same
+  link, use separate parts connected with `fix_` mates instead of composites.
