@@ -1,19 +1,19 @@
 # SOARM101 Journal
 
-20260221
+## 2026-02-21
 
-## Naming Convention
+### Naming Convention
 
 All project-specific additions use the `jai_` prefix to distinguish them from
 upstream lerobot content. This applies to branches, docs directories, and any
 custom scripts or configs added as part of this project.
 
-## Hardware
+### Hardware
 
 - **Motor Controller:** SEEED STUDIO 331-2508220013
 - **Interface:** USB CDC ACM (`/dev/ttyACM*`)
 
-## Udev Rule Script
+### Udev Rule Script
 
 - Created `generate_motorbus_udev_rule.bash` for generating udev rules for
   MotorBus devices
@@ -22,19 +22,19 @@ custom scripts or configs added as part of this project.
 - Set `MODE="0666"` for broad device access
 - Added `set -euo pipefail` for safer script execution
 
-### Generating a rule
+#### Generating a rule
 
 ```bash
 sudo bash src/lerobot/scripts/generate_motorbus_udev_rule.bash -d /dev/ttyACM0 -n leader_arm
 ```
 
-### What the script does
+#### What the script does
 
 1. Reads the device's vendor ID, product ID, and serial number via `udevadm`
 2. Writes a udev rule to `/etc/udev/rules.d/99-tty-<name>.rules`
 3. Reloads udev rules and triggers a re-scan
 
-### Removing a rule
+#### Removing a rule
 
 Delete the generated file and reload:
 
@@ -43,9 +43,9 @@ sudo rm /etc/udev/rules.d/99-tty-<name>.rules
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-20260222
+## 2026-02-22
 
-## Motor Setup
+### Motor Setup
 
 The Motor Bus needs both a USB connection to your laptop and external power from
 the DC/DC adapter included in the kit. The USB connection alone is not enough --
@@ -69,7 +69,7 @@ uv run lerobot-setup-motors \
     --teleop.port=/dev/leader_arm
 ```
 
-## Leader Arm Motor Gear Ratios
+### Leader Arm Motor Gear Ratios
 
 The HuggingFace docs mention that the leader arm needs specific gear ratios but
 don't say which motor serial/model numbers correspond to which gear ratio. This
@@ -94,7 +94,7 @@ The higher-load joints (base, shoulder, elbow) use the higher gear ratios so the
 arm can support its own weight. The wrist and gripper use lower ratios so they
 stay easy to move by hand.
 
-### Leader Arm Component Weights
+#### Leader Arm Component Weights
 
 Measured without horns or screws.
 
@@ -117,7 +117,7 @@ to tear the arm down later. These same values are also needed if the arm ever
 gets modeled in simulation (URDF/MJCF), where realistic masses and inertias
 make the difference between a sim that transfers to real and one that doesn't.**
 
-## Follower Arm Motor Gear Ratios
+### Follower Arm Motor Gear Ratios
 
 The follower arm uses the same gear ratio (1/345) for all six motors. Since this
 build uses the 12V version, that corresponds to the STS3215-C018.
@@ -136,7 +136,7 @@ In total you need 6x 1/345 gear ratio (C018).
 The 12V Pro version provides 30 kg-cm of stall torque compared to around
 16.5 kg-cm for the 7.4V standard motors.
 
-### Follower Arm Component Weights
+#### Follower Arm Component Weights
 
 Measured without horns or screws.
 
@@ -149,18 +149,18 @@ Measured without horns or screws.
 | ID 5 (Wrist Roll)| STS3215-C018 | 55.34     | 3.58      |
 | ID 6 (Gripper)   | STS3215-C018 | 55.45     | 3.52      |
 
-## Power Supply
+### Power Supply
 
 - Leader arm -- always uses 7.4V motors, powered at 5V
 - Follower arm -- uses 12V Pro motors, powered at 12V
 
 Make sure you use the correct power supply for each arm.
 
-20260301
+## 2026-03-01
 
-## Leader Arm Assembly
+### Leader Arm Assembly
 
-### General
+#### General
 
 - The assembly videos on the
   [HuggingFace docs](https://huggingface.co/docs/lerobot/en/so101?assembly=Leader)
@@ -169,13 +169,13 @@ Make sure you use the correct power supply for each arm.
 - Overall assembly was pretty easy and straightforward. No tolerance issues with
   the 3D printed parts.
 
-### M2 x 6mm Self-Threading Screws
+#### M2 x 6mm Self-Threading Screws
 
 These are used throughout the assembly. They're self-threading which makes
 things very easy, especially with 3D printed parts where holes aren't always
 perfectly aligned or have sagged slightly during printing.
 
-### M3 Screw Holes and Counterbores Are Slightly Small
+#### M3 Screw Holes and Counterbores Are Slightly Small
 
 Had to use a lot of force in several places to get the M3 screw heads into the
 counterbores, and then more force to drive the screws through the 3D printed
@@ -183,16 +183,16 @@ parts into the servo horn holes. Next time I print a set, I need to modify the
 CAD files on Onshape to increase the M3 screw holes and counterbores by
 0.05--0.1 mm.
 
-### Trigger Installation
+#### Trigger Installation
 
 The trigger was the hardest part to install because it kept moving around. The
 approach that worked: use two M3 6mm screws to align the holes first, then
 slowly tighten both screws alternately until they lock into the servo horn.
 After that, add the remaining two screws.
 
-20260329
+## 2026-03-29
 
-## Upstream PRs
+### Upstream PRs
 
 Submitted two PRs to huggingface/lerobot:
 
@@ -203,13 +203,13 @@ Submitted two PRs to huggingface/lerobot:
   `generate_motorbus_udev_rule.bash` script and updated SO-101, SO-100, Koch,
   and LeKiWi docs to use it instead of temporary chmod.
 
-## Project Docs Consolidation
+### Project Docs Consolidation
 
 Merged setup.md, decisions.md, assembly.md, and hardware.md into this single
 journal file. Easier to append new entries without deciding which file something
 belongs in.
 
-## Python Version
+### Python Version
 
 The lerobot codebase uses `type` statement syntax (Python 3.12+). The previous
 venv was Python 3.10 which caused a `SyntaxError` on import. Recreated with
@@ -227,7 +227,7 @@ robomimic) being incompatible with newer CMake. Workaround:
 CMAKE_POLICY_VERSION_MINIMUM=3.5 uv pip install -e ".[all]"
 ```
 
-## Leader Arm Input Voltage Error
+### Leader Arm Input Voltage Error
 
 During `lerobot-setup-motors`, motor 2 (shoulder_lift) threw
 `[RxPacketError] Input voltage error!`. This is overvoltage protection -- the
@@ -238,7 +238,7 @@ that refuses to operate rather than frying.
 
 See huggingface/lerobot#2387 for other reports of the same issue.
 
-## Calibration Homing Offset Out of Range
+### Calibration Homing Offset Out of Range
 
 During `lerobot-calibrate`, got `ValueError: Magnitude 2055 exceeds 2047`.
 This means one of the joints wasn't close enough to the center of its physical
@@ -247,7 +247,7 @@ range when pressing Enter. The tolerance is tight -- a few degrees matters.
 Created `docs/jai_soarm101/scripts/check_motor_positions.py` to read raw motor
 positions and identify which joint is off before retrying calibration.
 
-## Links to Explore
+### Links to Explore
 
 - https://github.com/vladfatu/telerobot
 - https://www.giacomoran.com/blog/act-smooth/
@@ -255,9 +255,9 @@ positions and identify which joint is off before retrying calibration.
 - https://arturhabuda.com/2025/07/01/foundation-robotics-model-comparison/
 - https://arturhabuda.com/2026/03/20/attention-heatmaps-in-vla-pi0-and-foca/
 
-20260403
+## 2026-04-03
 
-## Links to Explore
+### Links to Explore
 
 - GEN-1 gripper design by Generalist AI -- good for dexterous tasks, need to
   design something similar for the SO-101:
@@ -267,9 +267,9 @@ positions and identify which joint is off before retrying calibration.
   - https://www.youtube.com/watch?v=WgIdj9c4pA8
   - https://www.youtube.com/watch?v=721BZL9jPhU
 
-## Learnings from lerobot_teleoperate.py
+### Learnings from lerobot_teleoperate.py
 
-### How the teleop loop works
+#### How the teleop loop works
 
 The teleoperation script has two main parts:
 
@@ -278,13 +278,14 @@ The teleoperation script has two main parts:
 2. **teleop_loop()** -- the actual control loop that runs every frame.
 
 The loop does this each iteration:
-- Read the robot's current state (motor positions + camera images if any)
-- Read the leader arm's position (the action)
-- Process the action through pipelines (currently pass-through, but extensible)
-- Send the action to the follower robot
-- Optionally display data in the terminal and Rerun
 
-### Action pipeline
+- Reads the robot's current state (motor positions + camera images if any)
+- Reads the leader arm's position (the action)
+- Processes the action through pipelines (currently pass-through, but extensible)
+- Sends the action to the follower robot
+- Optionally displays data in the terminal and Rerun
+
+#### Action pipeline
 
 The full path for an action is:
 teleoperator -> raw_action -> teleop_action_processor -> robot_action_processor -> robot
@@ -292,20 +293,21 @@ teleoperator -> raw_action -> teleop_action_processor -> robot_action_processor 
 The processors currently do nothing (identity/pass-through). They exist as hooks for
 future features like action scaling, smoothing, or safety limits.
 
-### Cameras are optional
+#### Cameras are optional
 
 If you don't pass `--robot.cameras`, it defaults to an empty dict. Teleoperation
 works fine without cameras -- you just don't get visual feedback. Cameras are only
 needed if you want to see what the robot sees or record data.
 
-### display_data flag
+#### display_data flag
 
 Setting `--display_data=true` does two things:
+
 - Prints a live-updating motor values table in the terminal (uses cursor tricks
   to overwrite the same lines each frame instead of scrolling)
 - Logs camera images and actions to Rerun for visualization
 
-### Remote visualization with Rerun
+#### Remote visualization with Rerun
 
 You can stream Rerun data to a remote machine by setting `--display_ip` and
 `--display_port`. Useful for headless setups (e.g. Beelink with no monitor).
@@ -313,7 +315,7 @@ Both machines must be on the same network. Image compression auto-enables when
 streaming remotely to save bandwidth. On the viewing machine, run
 `rerun --serve --port 9876` and point the flags to that machine's local IP.
 
-### Force feedback
+#### Force feedback
 
 The teleop loop has a special case for the Unitree G1 that sends force feedback
 to the teleoperator. Neither the SO-ARM nor OMX arm support this -- both have
@@ -325,7 +327,7 @@ the motor applies a target force without fighting position changes. This could
 enable force feedback where you feel resistance when the follower hits something
 but can still move the leader freely.
 
-### Python patterns worth noting
+#### Python patterns worth noting
 
 - **Dataclasses for config** -- group related settings into a structured object
   instead of passing many separate arguments.
@@ -385,11 +387,9 @@ but can still move the leader freely.
 - **Dot notation** -- accessing attributes (`self.cameras`) and methods
   (`robot.get_observation()`) on objects.
 
-20260403
+### Learnings from so_leader.py
 
-## Learnings from so_leader.py
-
-### High-level Overview
+#### High-level overview
 
 Nobody holds the whole thing in their head at once, even experienced developers don't. They work in layers.
 People think about them as separate layers that talk to each other through defined interfaces.
@@ -397,7 +397,7 @@ People think about them as separate layers that talk to each other through defin
 SOLeader is a remote control. That's it. It reads where you move the arm and reports those positions. The
 teleop loop asks it "where are your joints right now?" and it answers:
 
-__The layers from top to Bottom__
+**The layers from top to bottom**
 
 Hardware (STS3215 servos on a serial bus)
     |
@@ -407,42 +407,42 @@ SOLeader (wraps the bus, adds calibration and structure)
     |
 teleop_loop (asks SOLeader for positions each frame)
 
-__How the file is organized__
+**How the file is organized**
 
-1. Imports - bring in the building blocks (motor bus, motor definitions, decorators)
-2. Class Definition - `SOLeader` inherits from `Teleoperator`, meaning it promises to provide certain methods (`connect`, `disconnect`, `get_action`).
-3. `__init__` = sets up the motor bus with 6 named motors
-4. connect/disconnect - open and close serial connection with calibration in between
-5. calibrate - is a one time setup to learn each joint's range
-6. configure - sets motor modes
-8. get_action - this is the core method that is called everyframe and reads all motor positions
+1. Imports -- bring in the building blocks (motor bus, motor definitions, decorators)
+2. Class Definition -- `SOLeader` inherits from `Teleoperator`, meaning it promises to provide certain methods (`connect`, `disconnect`, `get_action`)
+3. `__init__` -- sets up the motor bus with 6 named motors
+4. connect/disconnect -- open and close serial connection with calibration in between
+5. calibrate -- a one time setup to learn each joint's range
+6. configure -- sets motor modes
+7. get_action -- the core method called every frame that reads all motor positions
 
-__How developers architect this__
+**How developers architect this**
 
-They don't visualize everything at once because they think in terms of contracts. The `Teleoperator` base class says "any teleoperator must have `connect()`, `disconnect()`, `get_action()`, and `send_feedback()`.
+They don't visualize everything at once because they think in terms of contracts. The `Teleoperator` base class says "any teleoperator must have `connect()`, `disconnect()`, `get_action()`, and `send_feedback()`."
 
-20260503
+## 2026-05-03
 
-## Learnings from so_follower.py
+### Learnings from so_follower.py
 
 The whole point of decorators is that they wrap usable behaviour around methods so you don't need to repeat
-yourself
+yourself.
 
-### self
+#### self
 
 `self` refers to the specific instance of the class. If you do `robot = SOFollower(config)`,
 then inside any method of that class, `self` is `robot`. It's how methods access the
 object's attributes like `self.bus`, `self.cameras`, `self.config`. Every instance method
 takes `self` as its first argument -- Python passes it automatically when you call the method.
 
-### with statement (context manager)
+#### with statement (context manager)
 
 `with` runs setup code before the block and cleanup code after, guaranteed -- even if an
 error happens inside. For example, `with self.bus.torque_disabled()` disables torque on
 enter, runs your code, then re-enables torque on exit. You can't accidentally forget the
 cleanup step. It's a cleaner version of try/finally.
 
-### PID tuning on the follower
+#### PID tuning on the follower
 
 PID is a control loop that makes the motor reach and hold a target position.
 
@@ -457,7 +457,7 @@ values are the same for every motor, but ideally each joint would be tuned indiv
 since different joints carry different loads (shoulder carries more weight than the wrist).
 Per-motor tuning would give better performance but adds complexity.
 
-### Python patterns
+#### Python patterns
 
 - **Dictionary comprehension** -- `{f"{motor}.pos": val for motor, val in action.items()}`
   builds a new dict from an existing one. Same idea as list comprehension but produces a
@@ -474,20 +474,20 @@ Per-motor tuning would give better performance but adds complexity.
   ignored.
 - **Aliases** -- `SO100Leader = SOLeader` creates a second name pointing to the same class.
 
-### How observation and action flow through the system
+#### How observation and action flow through the system
 
-- **Observation** = what the robot senses (motor positions + camera images)
-- **Action** = what the robot can do (motor target positions only, no cameras)
+- **Observation** -- what the robot senses (motor positions + camera images)
+- **Action** -- what the robot can do (motor target positions only, no cameras)
 - Keys use `.pos` suffix (e.g. `"shoulder_pan.pos"`) in the pipeline, which gets
   stripped before writing to the motor bus and re-added when returning.
 
-### Gripper protection
+#### Gripper protection
 
 The gripper gets extra safety limits (50% max torque, 50% max current, 25% overload
 torque) because it's the most likely motor to stall. These can be tuned up if more
 grip force is needed but risk overheating or stripping the plastic gears.
 
-### max_relative_target
+#### max_relative_target
 
 A safety feature that clips how far a motor can move in one step. Disabled by default
 (`None`). Enable with `--robot.max_relative_target=5.0`. Runs during both teleoperation
@@ -495,7 +495,7 @@ and policy inference. During teleoperation it rarely matters (smooth movements).
 policy deployment, clipping could break the policy's assumptions -- so either disable it
 or set it high enough that it never triggers.
 
-### How developers think about code architecture
+#### How developers think about code architecture
 
 Nobody holds an entire codebase in their head. They think in layers and contracts.
 A base class (like `Robot` or `Teleoperator`) defines a contract -- what methods must
@@ -503,7 +503,7 @@ exist. Subclasses (like `SOFollower`, `SOLeader`) fulfill that contract for spec
 hardware. The teleop loop doesn't care how -- it just calls the interface methods.
 Focus on one layer at a time, not everything at once.
 
-### STS3215 custom firmware
+#### STS3215 custom firmware
 
 An open-source clean-room reimplementation of the STS3215 firmware exists
 (github.com/0o8o0-blip/sts3215-firmware). It adds a current/torque control mode
@@ -516,50 +516,48 @@ never exposed it as a control mode.
 
 For basic SO-101 teleoperation, kinematics is not used. The leader reads joint positions, the follower copies them directly. No FK or IK involved.
 
-The `robot_kinematic_processor.py` is for a different use-case. It is for end-effector (cartesion control). Instead of commanding individual joint positions, you command where you want the gripper
-top to be in 3D space (x, y, z, rotation), and the system uses:
+The `robot_kinematic_processor.py` is for a different use-case. It is for end-effector (Cartesian control). Instead of commanding individual joint positions, you command where you want the gripper
+tip to be in 3D space (x, y, z, rotation), and the system uses:
 
-- Forward Kinematics: converts current joint angles to the gripper's current 3D position
-
-- Inverse Kinematics: converts a desired 3D position back to the joint angles the motors can execute
+- Forward Kinematics -- converts current joint angles to the gripper's current 3D position
+- Inverse Kinematics -- converts a desired 3D position back to the joint angles the motors can execute
 
 This is used when:
-- A gamepad/joystick controls the gripper in Cartesion space rather
-than commanding individual joint positions.
 
+- A gamepad/joystick controls the gripper in Cartesian space rather
+  than commanding individual joint positions
 - A policy outputs end-effector targets instead of joint targets
+- You want workspace bounds and safety limits in Cartesian space (the EEBoundsAndSafety class)
 
-- You want workspace bounds and safety limits in Cartesian space (the EEBoundsAndSafety class
-
-ACT operates entirely in joint-space - it does not need FK/IK. The policy outputs the same kind of joint angles that my teleoperation records. No cartesian conversion needed. However, kinemaitcs mattesr for
-Gravity compensation and Custom Grippers:
+ACT operates entirely in joint-space -- it does not need FK/IK. The policy outputs the same kind of joint angles that my teleoperation records. No Cartesian conversion needed. However, kinematics matters for gravity compensation and custom grippers:
 
 - Gravity compensation -- to compute the torque gravity exerts on each joint, you need to know where each link's center of mass is in 3D space relative to each joint. That's forward kinematics. The torque on the shoulder joint depends on where the elbow, wrist, and gripper are in space and how much they weigh. Without FK, you can't compute the gravity torque vector.
-
 - Custom grippers -- changing the gripper changes the last link of the kinematic chain (different length, weight, center of mass). If you ever use Cartesian control or gravity compensation, the kinematic model needs to reflect the actual gripper geometry. For pure joint-space ACT, a different gripper doesn't require kinematics -- but it does change the calibration and range of motion.
 
-### Intel RealSense D405 General Information
+### Intel RealSense D405
+
+#### General information
 
 The D405 uses a passive stereo configuration with a pair of global shutter images separated by an 18mm baseline. It has no dedicated RGB lenses. Rather, the RGB is obtained from the depth sensor itself and then
 the ISP (Image Signal Processor) enhances the RGB.
 
 The lenses are fixed focus with no auto-focus capability for varying object distances within the working range.
 
-The depth (and color, since on the D405 color is derived from the depth sensor) __ground truth origin__ is at
-the ___left infrared imager__ which is on my right when I look at the front face of the camera.
+The depth (and color, since on the D405 color is derived from the depth sensor) **ground truth origin** is at
+the **left infrared imager** which is on my right when I look at the front face of the camera.
 
-### Intel RealSense D405 Groundtruth Origin
+#### Groundtruth origin
 
 [Reference Link](https://forum.digikey.com/t/the-intel-realsense-depth-camera-d405/50822) for Onshape-to-Robot: The origin (0,0,0) is defined as follows:
+
 - The centreline of the 1/4-20 tripod mounting hole runs vertically through the camera body. This is the Y axis.
 - The line perpendicular to it, passing through the same point, is the X axis.
 - Where they intersect is the XY origin.
 
 From that origin, the left imager (the depth/colour origin) is located at:
 
-- X = +9 mm — 9 mm to the right as you face the front of the camera
-- X = +9 mm — 9 mm to the right as you face the front of the camera
-- Z = -3.7 mm — the front glass face is Z = 0, and the optical origin sits 3.7 mm behind it, into the body
+- X = +9 mm -- 9 mm to the right as you face the front of the camera
+- Z = -3.7 mm -- the front glass face is Z = 0, and the optical origin sits 3.7 mm behind it, into the body
 
 Place your mate connector 9 mm to the right of the tripod mount centreline, vertically centred, with Z pointing outward and offset 3.7mm into the body.
 
@@ -569,36 +567,34 @@ The original assembly and Onshape file had hundreds of parts with random names t
 
 The good about this approach:
 
-- One composite part per link means onshape-to-robot has no ambiguity about what constitutes each rigid body
-- Clean assembly tree makes debugging much easier
-- The 7 subassemblies are connected to each other with revolute mates at the joint locations
+- One composite part per link means onshape-to-robot has no ambiguity about what constitutes each rigid body.
+- Clean assembly tree makes debugging much easier.
+- The 7 subassemblies are connected to each other with revolute mates at the joint locations.
 - Things that I had to ensure:
   - `onshape-to-robot` uses the mate connector axes to define the joint rotation axes in the URDF. So, if I just snap geometry together arbitrarily, the joint axes in the output will be wrong and unpredictable.
-  - For each revolute mate I needed to ensure that the mate connector is positioned at the joints centre of rotations and the z axis aligned with the rotation axis. `onshape-to-robot` treats z as the joint axis by convention.
+  - For each revolute mate I needed to ensure that the mate connector is positioned at the joint's centre of rotation and the z axis aligned with the rotation axis. `onshape-to-robot` treats z as the joint axis by convention.
   - These mate connectors are in the sub-assemblies rather than the main assembly. This ensures that the mate connector lives relative to the part geometry. If I ever move or modify the sub-assembly, the connector moves with it.
-  
+
 ### `fix_` vs `dof_`
 
 They achieve the same result (rigid connection), but the intent is different:
 
 - `fix_` -- explicitly tells onshape-to-robot to merge two parts into one link. No joint is created at all in the output. The parts become one rigid body.
-- `dof_` with fastened -- creates an actual fixed joint in the URDF/MJCF. The two parts remain separate links connected by a joint wiht zero degrees of freedom.
+- `dof_` with fastened -- creates an actual fixed joint in the URDF/MJCF. The two parts remain separate links connected by a joint with zero degrees of freedom.
 
 So prefixing a mate with `fix_` makes it a fixed joint, which most URDF/MJCF parsers will collapse into a single rigid body. So, instead of using composite parts, I could have all my individual parts connected by `fix_`
 and they'd effectively behave as one link. However, I argue that my composite parts approach is cleaner because:
 
 1. The collapsing happens at the Onshape level, not dependent on the parser
 2. The assembly tree is simpler to read and debug
-3. Mass/Inertia (if included) will be computed on one unified body rather than summed across fixed joints
+3. Mass/inertia (if included) will be computed on one unified body rather than summed across fixed joints
 
 ### Understanding config.json
 
-- `ignore_limits`: __false__. When false, onshape-to-robot reads the joint limits from your Onshape mate connectors (the min/max rotation I set on each DOF) and includes them in the exported MuJoCo XML as `range`
-attributes on joints. When true, it ignores these limits and exports joints with no range constraints -- they can rotate freely.
-
-- `draw_frames`: __true__. When true, onshape-to-robot exports `<site>` elements in the MuJoCo XML for each `frame_` mate connector in the Onshape model. These are visual markers visible in the MuJoCo viewer, useful for debugging positions and orientations. When false, frame mate connectors are ignored during export.
-
-- `no_dynamics`: __false__. When false, onshape-to-robot includes mass, inertia, and physics properties in the export. When true, it skips all dynamics -- no mass, no inertia -- producing a model only suitable for visualization, not physics simulation. Keep this false for any model that needs to simulate gravity, contacts, or motor forces.
+- `ignore_limits`: **false**. When false, onshape-to-robot reads the joint limits from your Onshape mate connectors (the min/max rotation I set on each DOF) and includes them in the exported MuJoCo XML as `range`
+  attributes on joints. When true, it ignores these limits and exports joints with no range constraints -- they can rotate freely.
+- `draw_frames`: **true**. When true, onshape-to-robot exports `<site>` elements in the MuJoCo XML for each `frame_` mate connector in the Onshape model. These are visual markers visible in the MuJoCo viewer, useful for debugging positions and orientations. When false, frame mate connectors are ignored during export.
+- `no_dynamics`: **false**. When false, onshape-to-robot includes mass, inertia, and physics properties in the export. When true, it skips all dynamics -- no mass, no inertia -- producing a model only suitable for visualization, not physics simulation. Keep this false for any model that needs to simulate gravity, contacts, or motor forces.
 
 ### onshape-to-robot
 
@@ -616,12 +612,11 @@ attributes on joints. When true, it ignores these limits and exports joints with
     would cap their combined force, while each motor's `forcerange` would cap
     them individually.
   - `forcerange` gives the PD controller a bit of room to compute without hitting a hard
-  wall immediately. `actuatorfrcrange` is the hard physical limit - the joint never sees more
-  than the real motor's stall torque regardless.
-- kp is the proportional gain. Hence, it multiplies the position error `kp * (q_desired - q_actual)`.
-It determines stiffness - how hard the actuator pushes to close a position error. Higher kp leads to a stiffer, snappier response, but it can overshoor or oscillate.
-
-- kv is the derivative gain. Multiplies the velocity error. A higher Kv dampens the response (resists motion, smooths out oscillations).
+    wall immediately. `actuatorfrcrange` is the hard physical limit -- the joint never sees more
+    than the real motor's stall torque regardless.
+- `kp` is the proportional gain. It multiplies the position error `kp * (q_desired - q_actual)`.
+  It determines stiffness -- how hard the actuator pushes to close a position error. Higher kp leads to a stiffer, snappier response, but it can overshoot or oscillate.
+- `kv` is the derivative gain. It multiplies the velocity error. A higher kv dampens the response (resists motion, smooths out oscillations).
 
 ```bash
 F = kp * (q_desired - q_actual) + kv * (dq_desired - dq_actual)
@@ -634,10 +629,8 @@ F = kp * (q_desired - q_actual) + kv * (dq_desired - dq_actual)
   writes them directly as `actuatorfrcrange="{min} {max}"`. Passing an array to
   `forcerange` produces garbled output like `forcerange="-[-3.35, 3.35] [-3.35, 3.35]"`.
   Correct usage: `"forcerange": 3.35` and `"actuatorfrcrange": [-2.94, 2.94]`.
-
 - `onshape-to-robot` is installed in the base conda environment, not the lerobot
   venv. Deactivate the lerobot venv first (`deactivate`) before running it.
-
 - `onshape-to-robot` exports one mesh per composite part. Everything in a
   composite gets a single material/color. So the motor and the 3D printed housing
   end up the same color. To have different colors per sub-part within the same
